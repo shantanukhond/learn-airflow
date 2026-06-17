@@ -1,3 +1,4 @@
 [submodule "dags"]
 	path = dags
 	url = https://github.com/shantanukhond/learn-airflow-dags.git
+	branch = main
