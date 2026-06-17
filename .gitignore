@@ -4,6 +4,4 @@ logs/
 __pycache__/
 .DS_Store
 
-# DAGs are cloned from a separate repo — ignore cloned contents
-dags/*
-!dags/.gitkeep
+# DAGs are tracked as a git submodule (see .gitmodules)

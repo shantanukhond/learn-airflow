@@ -1,66 +1,50 @@
-# Airflow Dev Environment
+# Learn Airflow
 
-Local **Apache Airflow 3.x** setup using Docker Compose. DAGs are maintained in a separate repository and mounted into this project.
+Local **Apache Airflow 3.x** dev environment with Docker Compose. DAGs live in a separate repo and are included here as a [git submodule](https://github.com/shantanukhond/learn-airflow-dags).
+
+On GitHub, the `dags` folder appears as **`dags @ <commit>`** (for example `dags @ 55a2946`). That is normal — it links to a specific commit in [learn-airflow-dags](https://github.com/shantanukhond/learn-airflow-dags), not a branch name. Git submodules always pin a commit hash.
+
+## Related repos
+
+| Repo | Purpose |
+|------|---------|
+| [learn-airflow](https://github.com/shantanukhond/learn-airflow) | Docker Compose, config, plugins (this repo) |
+| [learn-airflow-dags](https://github.com/shantanukhond/learn-airflow-dags) | DAG examples for the tutorial series |
 
 ## Structure
 
 ```
 .
-├── docker-compose.yaml   # Airflow services (api-server, scheduler, dag-processor, triggerer, postgres)
-├── Dockerfile            # Extend the base Airflow image with extra deps
+├── docker-compose.yaml   # api-server, scheduler, dag-processor, triggerer, postgres
+├── Dockerfile            # extend the Airflow image with extra deps
 ├── .env                  # Docker Compose settings only (UID, image, init user)
+├── .gitmodules           # links dags/ → learn-airflow-dags
 ├── config/
 │   └── airflow.cfg       # Airflow runtime configuration
-├── dags/                 # Clone your DAGs repo here
-├── plugins/              # Custom Airflow plugins
-└── logs/                 # Task logs (generated at runtime)
+├── dags/                 # git submodule → learn-airflow-dags
+├── plugins/              # custom Airflow plugins
+└── logs/                 # task logs (generated at runtime)
 ```
-
-## Configuration
-
-Airflow settings live in `config/airflow.cfg` (mounted via `AIRFLOW_CONFIG`). The `.env` file is only for Docker Compose concerns:
-
-| File | Purpose |
-|------|---------|
-| `config/airflow.cfg` | Executor, database, auth, JWT, scheduler, etc. |
-| `.env` | `AIRFLOW_UID`, image name, init admin user, optional pip packages |
-
-Edit `config/airflow.cfg` before first start. At minimum, set `fernet_key` in the `[core]` section:
-
-```bash
-python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-```
-
-To see all defaults Airflow ships with:
-
-```bash
-docker compose run --rm airflow-apiserver airflow config list --defaults
-```
-
-Environment variables (`AIRFLOW__SECTION__KEY`) still override `airflow.cfg` if you need that for secrets in production.
-
-## Airflow 3.x notes
-
-- **API server** replaces the old webserver (`airflow-apiserver` on port 8080).
-- **DAG processor** runs as its own service (DAG parsing is no longer inside the scheduler).
-- Auth uses the **FAB auth manager** with JWT (`[api_auth] jwt_secret` in `airflow.cfg`).
-- DAGs written for Airflow 2.x may need updates for the [Airflow 3 migration guide](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html).
 
 ## Quick start
 
-### 1. Clone your DAGs repo
+### 1. Clone this repo **with submodules**
 
 ```bash
-# Remove the placeholder, then clone your DAGs repository into dags/
-rm dags/.gitkeep
-git clone <your-dags-repo-url> dags
+git clone --recurse-submodules https://github.com/shantanukhond/learn-airflow.git
+cd learn-airflow
 ```
 
-Or clone into a temp folder and move contents:
+If you already cloned without submodules, initialize them:
 
 ```bash
-git clone <your-dags-repo-url> /tmp/my-dags
-cp -R /tmp/my-dags/. dags/
+git submodule update --init --recursive
+```
+
+To pull the latest DAGs from `main` after cloning:
+
+```bash
+git submodule update --remote dags
 ```
 
 ### 2. Configure
@@ -70,7 +54,11 @@ cp .env.example .env
 echo "AIRFLOW_UID=$(id -u)" >> .env
 ```
 
-Set `fernet_key` in `config/airflow.cfg` (see above).
+Set `fernet_key` in `config/airflow.cfg`:
+
+```bash
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
 
 ### 3. Start Airflow
 
@@ -82,41 +70,57 @@ docker compose up -d
 ### 4. Open the UI
 
 - URL: http://localhost:8080
-- Username: `airflow` (or value of `_AIRFLOW_WWW_USER_USERNAME` in `.env`)
-- Password: `airflow` (or value of `_AIRFLOW_WWW_USER_PASSWORD` in `.env`)
+- Username: `airflow`
+- Password: `airflow`
+
+## Configuration
+
+Airflow settings live in `config/airflow.cfg`. The `.env` file is only for Docker Compose:
+
+| File | Purpose |
+|------|---------|
+| `config/airflow.cfg` | executor, database, auth, JWT, scheduler |
+| `.env` | `AIRFLOW_UID`, image name, init admin user |
+
+Environment variables (`AIRFLOW__SECTION__KEY`) override `airflow.cfg` when needed.
+
+## Updating DAGs
+
+**As a learner** — get the latest DAGs from `main`:
+
+```bash
+git submodule update --remote dags
+```
+
+**As a maintainer** — after pushing to `learn-airflow-dags`, update the submodule pointer in this repo:
+
+```bash
+git submodule update --remote dags
+git add dags
+git commit -m "Update DAGs submodule to latest main"
+git push
+```
+
+GitHub will then show a new commit hash next to `dags` (e.g. `dags @ abc1234`).
 
 ## Common commands
 
 ```bash
-# View logs
 docker compose logs -f
-
-# Stop services
 docker compose down
-
-# Stop and remove database volume (full reset)
-docker compose down -v
-
-# Rebuild image after Dockerfile changes
-docker compose build
-
-# Inspect effective config value
-docker compose run --rm airflow-apiserver airflow config get-value core executor
+docker compose down -v          # full reset (removes database volume)
+docker compose build            # rebuild after Dockerfile changes
 ```
 
-## Adding Python dependencies
+## Airflow 3.x notes
 
-Either:
+- **API server** replaces the old webserver (`airflow-apiserver` on port 8080)
+- **DAG processor** runs as its own service
+- Auth uses the **FAB auth manager** with JWT (`[api_auth] jwt_secret` in `airflow.cfg`)
+- DAGs written for Airflow 2.x may need updates — see the [Airflow 3 migration guide](https://airflow.apache.org/docs/apache-airflow/stable/installation/upgrading_to_airflow3.html)
 
-1. Add packages to `Dockerfile` and rebuild, or
-2. Set `_PIP_ADDITIONAL_REQUIREMENTS` in `.env` (slower startup, good for quick experiments)
+## Links
 
-## Updating DAGs
-
-Pull the latest from your DAGs repo:
-
-```bash
-cd dags && git pull && cd ..
-```
-
-Airflow picks up changes automatically (default scan interval ~30s).
+- DAGs: [learn-airflow-dags](https://github.com/shantanukhond/learn-airflow-dags)
+- Docs: [airflow.atwish.org](https://airflow.atwish.org)
+- Videos: [YouTube](https://youtube.com/@shantanukhond)
