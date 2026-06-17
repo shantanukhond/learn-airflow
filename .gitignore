@@ -4,4 +4,5 @@ logs/
 __pycache__/
 .DS_Store
 
-# DAGs are tracked as a git submodule (see .gitmodules)
+# DAGs live in learn-airflow-dags — clone separately into dags/
+dags/
