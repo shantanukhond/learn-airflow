@@ -1,13 +1,13 @@
 # Learn Airflow
 
-Local **Apache Airflow 3.x** dev environment with Docker Compose. DAGs are maintained in a [separate repository](https://github.com/shantanukhond/learn-airflow-dags) and cloned into `dags/` locally.
+Local **Apache Airflow 3.x** dev environment with Docker Compose. DAGs and plugins are maintained in a [separate repository](https://github.com/shantanukhond/learn-airflow-dags) and cloned into `airflow-code/` locally.
 
 ## Related repos
 
 | Repo | Purpose |
 |------|---------|
-| [learn-airflow](https://github.com/shantanukhond/learn-airflow) | Docker Compose, config, plugins (this repo) |
-| [learn-airflow-dags](https://github.com/shantanukhond/learn-airflow-dags) | DAG examples for the tutorial series |
+| [learn-airflow](https://github.com/shantanukhond/learn-airflow) | Docker Compose, config (this repo) |
+| [learn-airflow-dags](https://github.com/shantanukhond/learn-airflow-dags) | DAGs, plugins, and pipeline code |
 
 ## Structure
 
@@ -18,8 +18,9 @@ Local **Apache Airflow 3.x** dev environment with Docker Compose. DAGs are maint
 ├── .env                  # Docker Compose settings only (UID, image, init user)
 ├── config/
 │   └── airflow.cfg       # Airflow runtime configuration
-├── dags/                 # clone learn-airflow-dags here (not tracked in git)
-├── plugins/              # custom Airflow plugins
+├── airflow-code/         # clone learn-airflow-dags here (not tracked in git)
+│   ├── dags/             #   → mounted to /opt/airflow/dags
+│   └── plugins/          #   → mounted to /opt/airflow/plugins
 └── logs/                 # task logs (generated at runtime)
 ```
 
@@ -32,12 +33,12 @@ git clone --depth=1 https://github.com/shantanukhond/learn-airflow.git
 cd learn-airflow
 ```
 
-### 2. Clone DAGs (optional)
+### 2. Clone pipeline code (optional)
 
 Skip this step if you only want the Airflow environment and will add your own DAGs.
 
 ```bash
-git clone --depth=1 https://github.com/shantanukhond/learn-airflow-dags.git dags
+git clone --depth=1 https://github.com/shantanukhond/learn-airflow-dags.git airflow-code
 ```
 
 ### 3. Configure
@@ -73,17 +74,17 @@ Airflow settings live in `config/airflow.cfg`. The `.env` file is only for Docke
 | File | Purpose |
 |------|---------|
 | `config/airflow.cfg` | executor, database, auth, JWT, scheduler |
-| `.env` | `AIRFLOW_UID`, image name, init admin user |
+| `.env` | `AIRFLOW_UID`, image name, `AIRFLOW_CODE_DIR`, init admin user |
 
 Environment variables (`AIRFLOW__SECTION__KEY`) override `airflow.cfg` when needed.
 
-## Updating DAGs
+## Updating pipeline code
 
 ```bash
-cd dags && git pull && cd ..
+cd airflow-code && git pull && cd ..
 ```
 
-Airflow picks up changes automatically (default scan interval ~30s).
+Airflow picks up changes automatically (default scan interval ~30s). Both `airflow-code/dags/` and `airflow-code/plugins/` are mounted from the code repo.
 
 ## Common commands
 

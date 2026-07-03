@@ -4,5 +4,5 @@ logs/
 __pycache__/
 .DS_Store
 
-# DAGs live in learn-airflow-dags — clone separately into dags/
-dags/
+# DAGs + plugins live in learn-airflow-dags — clone separately into airflow-code/
+airflow-code/
